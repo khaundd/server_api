@@ -19,7 +19,7 @@ def verify_email_code(email: str, code: str):
         cursor = conn.cursor()
         
         # Проверяем данные во временной таблице
-        query = """SELECT username, password, height, bodyweight, age FROM temp_registrations 
+        query = """SELECT username, hashed_password, height, bodyweight, age FROM temp_registrations 
                    WHERE email = %s AND code = %s AND expires_at > NOW()"""
         cursor.execute(query, (email, code))
         result = cursor.fetchone()
@@ -30,7 +30,7 @@ def verify_email_code(email: str, code: str):
         username, password, height, bodyweight, age = result
         
         # Вставляем пользователя в основную таблицу
-        insert_query = """INSERT INTO users (username, password, email, height, bodyweight, age) 
+        insert_query = """INSERT INTO users (username, hashed_password, email, height, bodyweight, age) 
                           VALUES (%s, %s, %s, %s, %s, %s)"""
         cursor.execute(insert_query, (username, password, email, height, bodyweight, age))
         

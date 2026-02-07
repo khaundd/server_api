@@ -33,7 +33,7 @@ def store_verification_code(email: str, username: str, hashed_password: str, hei
         cursor.execute("DELETE FROM temp_registrations WHERE email = %s", (email,))
         
         # Вставляем новые данные регистрации
-        query = """INSERT INTO temp_registrations (email, username, password, height, bodyweight, age, code, expires_at) 
+        query = """INSERT INTO temp_registrations (email, username, hashed_password, height, bodyweight, age, code, expires_at) 
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.execute(query, (email, username, hashed_password, height, bodyweight, age, code, expires_at))
         conn.commit()
@@ -44,31 +44,6 @@ def store_verification_code(email: str, username: str, hashed_password: str, hei
     except mysql.connector.Error as err:
         print(f"Ошибка базы данных при сохранении данных регистрации: {err}")
         return False
-    finally:
-        if conn and conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def get_verification_code(email: str) -> str:
-    """Получает код подтверждения из базы данных."""
-    conn = None
-    try:
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        
-        query = """SELECT code FROM email_verifications 
-                   WHERE email = %s AND is_verified = FALSE 
-                   AND expires_at > NOW()"""
-        cursor.execute(query, (email,))
-        result = cursor.fetchone()
-        
-        if result:
-            return result[0]
-        return None
-        
-    except mysql.connector.Error as err:
-        print(f"Ошибка базы данных при получении кода: {err}")
-        return None
     finally:
         if conn and conn.is_connected():
             cursor.close()
@@ -86,7 +61,7 @@ def send_verification_email(email: str, code: str) -> bool:
     """
     # Настройки SMTP-сервера (пример для Gmail)
     smtp_server = "smtp.gmail.com"
-    smtp_port = 465
+    smtp_port = 587
     sender_email = "baniel200545@gmail.com"  # Замените на ваш email
     sender_password = "onkrqfaiedvbiceg"    # Замените на ваш пароль
 
@@ -116,7 +91,9 @@ def send_verification_email(email: str, code: str) -> bool:
 
     # Отправка письма
     try:
-        server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+        # Используем стандартный SMTP + STARTTLS
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls() # Шифруем соединение
         server.login(sender_email, sender_password)
         server.sendmail(sender_email, email, message.as_string())
         server.quit()
