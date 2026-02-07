@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, session
 import mysql.connector
 import hashlib
+from utils import generate_verification_code, store_verification_code, send_verification_email
+from verification import verify_email_code
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Установите секретный ключ для сессий
@@ -37,9 +39,16 @@ def register():
     cursor = conn.cursor()
 
     try:
-        cursor.callproc('registration', [username, hashed_password, email, height, bodyweight, age])
-        conn.commit()
-        return jsonify({'message': 'Пользователь успешно зарегистрирован'}), 201
+        # Сохраняем данные пользователя во временной таблице
+        verification_code = generate_verification_code()
+        success = store_verification_code(email, username, hashed_password, height, bodyweight, age, verification_code)
+        if not success:
+            return jsonify({'error': 'Ошибка базы данных при регистрации'}), 500
+            
+        # Отправка кода подтверждения
+        send_verification_email(email, verification_code)
+
+        return jsonify({'message': 'Регистрация почти завершена. Проверьте email для подтверждения.'}), 201
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 400
     finally:
@@ -78,6 +87,20 @@ def login():
     finally:
         cursor.close()
         conn.close()
+
+# Подтверждение email
+@app.route('/verify-email', methods=['POST'])
+def verify_email():
+    """Эндпоинт для подтверждения email по коду."""
+    data = request.get_json()
+    email = data.get('email')
+    code = data.get('code')
+
+    if not email or not code:
+        return jsonify({'error': 'Email и код обязательны'}), 400
+
+    success, response, status_code = verify_email_code(email, code)
+    return jsonify(response), status_code
 
 # Выход из аккаунта
 @app.route('/logout', methods=['POST'])
