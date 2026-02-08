@@ -3,18 +3,12 @@ import mysql.connector
 import hashlib
 from utils import generate_verification_code, store_verification_code, send_verification_email
 from verification import verify_email_code
+from config import Config
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Установите секретный ключ для сессий
 
-# Настройка подключения к MySQL
-cfg = {
-    'user': 'user',
-    'password': 'qwerty123',
-    'host': 'localhost',
-    'database': 'project_course4',
-    'raise_on_warnings': True
-}
+cfg = Config.get_db_config()
 
 # Хеширование пароля
 def hash_password(password):
@@ -39,6 +33,20 @@ def register():
     cursor = conn.cursor()
 
     try:
+        # Проверяем, существует ли уже пользователь с такой почтой в основной таблице
+        check_query = "SELECT email FROM users WHERE email = %s"
+        cursor.execute(check_query, (email,))
+        if cursor.fetchone():
+            return jsonify({'error': f'Эта почта ({email}) уже зарегистрирована'}), 400
+        
+        # Проверяем, нет ли уже временной записи
+        check_temp_query = "SELECT email FROM temp_registrations WHERE email = %s"
+        cursor.execute(check_temp_query, (email,))
+        if cursor.fetchone():
+            # Удаляем предыдущую временную запись
+            cursor.execute("DELETE FROM temp_registrations WHERE email = %s", (email,))
+            conn.commit()
+        
         # Сохраняем данные пользователя во временной таблице
         verification_code = generate_verification_code()
         success = store_verification_code(email, username, hashed_password, height, bodyweight, age, verification_code)
@@ -46,9 +54,11 @@ def register():
             return jsonify({'error': 'Ошибка базы данных при регистрации'}), 500
             
         # Отправка кода подтверждения
-        send_verification_email(email, verification_code)
-
-        return jsonify({'message': 'Регистрация почти завершена. Проверьте email для подтверждения.'}), 201
+        if send_verification_email(email, verification_code):
+            return jsonify({'message': 'Регистрация почти завершена. Проверьте email для подтверждения.'}), 201
+        else:
+            return jsonify({'error': 'Не удалось отправить код подтверждения на email'}), 500
+            
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 400
     finally:

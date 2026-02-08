@@ -3,15 +3,10 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from config import Config
+import os
 
-# Конфигурация базы данных (должна быть вынесена в конфиг-файл или переменные окружения)
-db_config = {
-    'user': 'user',
-    'password': 'qwerty123',
-    'host': 'localhost',
-    'database': 'project_course4',
-    'raise_on_warnings': True
-}
+db_config = Config.get_db_config()
 
 
 def generate_verification_code():
@@ -59,11 +54,11 @@ def send_verification_email(email: str, code: str) -> bool:
     Returns:
         bool: True при успешной отправке, False в случае ошибки
     """
-    # Настройки SMTP-сервера (пример для Gmail)
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    sender_email = "baniel200545@gmail.com"  # Замените на ваш email
-    sender_password = "onkrqfaiedvbiceg"    # Замените на ваш пароль
+    # Настройки SMTP-сервера загружаются из переменных окружения
+    smtp_server = os.getenv('SMTP_SERVER')
+    smtp_port = int(os.getenv('SMTP_PORT'))
+    sender_email = os.getenv('EMAIL_USER')
+    sender_password = os.getenv('EMAIL_PASSWORD')
 
     # Создание сообщения
     message = MIMEMultipart("alternative")
