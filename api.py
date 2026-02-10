@@ -4,6 +4,13 @@ import hashlib
 from utils import generate_verification_code, store_verification_code, send_verification_email
 from verification import verify_email_code
 from config import Config
+import jwt
+import datetime
+import os
+from functools import wraps
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Установите секретный ключ для сессий
@@ -13,6 +20,43 @@ cfg = Config.get_db_config()
 # Хеширование пароля
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+def generate_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30) # Токен живет 30 дней
+    }
+    return jwt.encode(payload, os.getenv('SECRET_KEY'), algorithm='HS256') #че-то тут не работало с os.getenv
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # Обычно токен передается в заголовке 'Authorization' в формате 'Bearer <token>'
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            try:
+                token = auth_header.split(" ")[1] # Берем вторую часть (сам токен)
+            except IndexError:
+                return jsonify({'message': 'Неверный формат заголовка Authorization!'}), 401
+
+        if not token:
+            return jsonify({'message': 'Токен отсутствует!'}), 401
+
+        try:
+            # Декодируем токен, используя тот же SECRET_KEY
+            data = jwt.decode(token, os.getenv('SECRET_KEY'), algorithms=["HS256"])
+            # Можно сразу получить ID текущего пользователя
+            current_user_id = data['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Срок действия токена истек!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Неверный токен!'}), 401
+
+        # Передаем id пользователя в функцию, если это необходимо
+        return f(current_user_id, *args, **kwargs)
+
+    return decorated
 
 # Регистрация пользователя
 @app.route('/register', methods=['POST'])
@@ -68,35 +112,46 @@ def register():
 # Авторизация пользователя
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    if not email or not password:
-        return jsonify({'error': 'Email и пароль обязательны'}), 400
-
-    hashed_password = hash_password(password)
-    conn = mysql.connector.connect(**cfg)
-    cursor = conn.cursor()
-
     try:
-        cursor.callproc('authorization', [email, hashed_password])
-        for result in cursor.stored_results():
-            response = result.fetchone()
-            if response and response[0] == 'Авторизация успешна':
-                # Получаем данные пользователя после успешной авторизации
-                cursor.execute("SELECT user_id, username FROM users WHERE email = %s", (email,))
-                user = cursor.fetchone()
-                session['user_id'] = user[0]
-                session['username'] = user[1]
-                return jsonify({'message': 'Вход выполнен успешно'}), 200
-            else:
-                return jsonify({'error': response[0] if response else 'Ошибка авторизации'}), 401
-    except mysql.connector.Error as err:
-        return jsonify({'error': str(err)}), 401
-    finally:
-        cursor.close()
-        conn.close()
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return jsonify({'error': 'Email и пароль обязательны'}), 400
+
+        hashed_password = hash_password(password)
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor()
+
+        try:
+            cursor.callproc('authorization', [email, hashed_password])
+            for result in cursor.stored_results():
+                response = result.fetchone()
+                if response and response[0] == 'Авторизация успешна':
+                    # Получаем данные пользователя после успешной авторизации
+                    cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+                    user_id = int(cursor.fetchone()[0])
+                    print("user_id:",user_id) # Выводим id пользователя в консоль для проверки
+                    token = generate_token(user_id)
+                    print("token - ", token)
+                    response_dict = {
+                        'message': 'Вход выполнен успешно',
+                        'token': str(token),
+                        'user_id': user_id
+                    }
+                    print("json response - ", response_dict)
+                    return jsonify(response_dict), 200
+                else:
+                    return jsonify({'error': response[0] if response else 'Ошибка авторизации'}), 401
+        except mysql.connector.Error as err:
+            return jsonify({'error': str(err)}), 401
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Подтверждение email
 @app.route('/verify-email', methods=['POST'])
@@ -120,9 +175,13 @@ def logout():
 
 # Получение данных из таблицы products
 @app.route('/products', methods=['GET'])
-def get_products():
+@token_required
+def get_products(current_user_id):
     conn = mysql.connector.connect(**cfg)
     cursor = conn.cursor(dictionary=True)
+    
+    print(f"Пользователь {current_user_id} запрашивает список продуктов")
+
     cursor.execute("SELECT product_name, proteins, fats, carbs, calories FROM products")
     rows = cursor.fetchall()
     cursor.close()

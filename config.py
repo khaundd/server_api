@@ -9,7 +9,7 @@ class Config:
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_HOST = os.getenv('DB_HOST')
     DB_NAME = os.getenv('DB_NAME')
-    
+
     @staticmethod
     def get_db_config():
         """Возвращает конфигурацию для подключения к базе данных"""
