@@ -169,9 +169,10 @@ def verify_email():
 
 # Выход из аккаунта
 @app.route('/logout', methods=['POST'])
-def logout():
+@token_required
+def logout(current_user_id):
     session.clear()
-    return jsonify({'message': 'Выход выполнен успешно'}), 200
+    return jsonify({'message': f'Пользователь {current_user_id} успешно вышел'}), 200
 
 # Получение данных из таблицы products
 @app.route('/products', methods=['GET'])
