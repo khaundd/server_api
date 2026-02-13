@@ -132,7 +132,7 @@ def login():
                     # Получаем данные пользователя после успешной авторизации
                     cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
                     user_id = int(cursor.fetchone()[0])
-                    print("user_id:",user_id) # Выводим id пользователя в консоль для проверки
+                    print("user_id:",user_id)
                     token = generate_token(user_id)
                     print("token - ", token)
                     response_dict = {
@@ -183,11 +183,56 @@ def get_products(current_user_id):
     
     print(f"Пользователь {current_user_id} запрашивает список продуктов")
 
-    cursor.execute("SELECT product_name, proteins, fats, carbs, calories FROM products")
+    cursor.execute("SELECT product_id, product_name, proteins, fats, carbs, calories FROM products")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
     return jsonify(rows)
+
+@app.route('/sync-meals', methods=['POST'])
+@token_required
+def sync_meals(current_user_id):
+    data = request.get_json()
+    meals_data = data.get('meals', [])
+
+    if not meals_data:
+        return jsonify({'message': 'Нет данных для синхронизации'}), 200
+
+    conn = mysql.connector.connect(**cfg)
+    cursor = conn.cursor()
+    
+    try:
+        # Отключаем авто-коммит для транзакции
+        conn.autocommit = False
+
+        for meal in meals_data:
+            # 1. Вставка в таблицу meal
+            meal_query = "INSERT INTO meal (user_id, name, meal_time) VALUES (%s, %s, %s)"
+            cursor.execute(meal_query, (current_user_id, meal['name'], meal['meal_time']))
+            
+            # Получаем ID только что созданного приема пищи
+            new_meal_id = cursor.lastrowid
+
+            for component in meal['components']:
+                # 2. Вставка в таблицу meal_component
+                comp_query = "INSERT INTO meal_component (product_id, weight) VALUES (%s, %s)"
+                cursor.execute(comp_query, (component['product_id'], component['weight']))
+                
+                new_component_id = cursor.lastrowid
+
+                # 3. Вставка в связующую таблицу meal_meal_component
+                link_query = "INSERT INTO meal_meal_component (meal_id, meal_component_id) VALUES (%s, %s)"
+                cursor.execute(link_query, (new_meal_id, new_component_id))
+
+        conn.commit()
+        return jsonify({'message': f'Успешно синхронизировано {len(meals_data)} приемов пищи'}), 201
+
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
