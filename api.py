@@ -9,6 +9,7 @@ import datetime
 import os
 from functools import wraps
 from dotenv import load_dotenv
+import pytz
 
 load_dotenv()
 
@@ -20,6 +21,39 @@ cfg = Config.get_db_config()
 # Хеширование пароля
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+# Конвертация времени из локального формата в UTC
+def convert_to_utc(datetime_str):
+    """Конвертирует строку datetime в UTC формат"""
+    try:
+        # Парсим локальное время
+        local_dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        # Определяем локальную временную зону
+        local_tz = pytz.timezone('Asia/Novosibirsk')  # Или другая временная зона
+        # Применяем локальную временную зону
+        local_dt = local_tz.localize(local_dt)
+        # Конвертируем в UTC
+        utc_dt = local_dt.astimezone(pytz.UTC)
+        return utc_dt.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        print(f"Ошибка конвертации времени: {e}")
+        return datetime_str
+
+# Конвертация времени из UTC в локальный формат
+def convert_from_utc(datetime_str):
+    """Конвертирует строку UTC datetime в локальный формат"""
+    try:
+        # Парсим UTC время
+        utc_dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        # Применяем UTC временную зону
+        utc_dt = pytz.UTC.localize(utc_dt)
+        # Конвертируем в локальную временную зону
+        local_tz = pytz.timezone('Asia/Novosibirsk')
+        local_dt = utc_dt.astimezone(local_tz)
+        return local_dt.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        print(f"Ошибка конвертации времени из UTC: {e}")
+        return datetime_str
 
 def generate_token(user_id):
     payload = {
@@ -82,7 +116,7 @@ def register():
         cursor.execute(check_query, (email,))
         if cursor.fetchone():
             return jsonify({'error': f'Эта почта ({email}) уже зарегистрирована'}), 400
-        
+
         # Проверяем, нет ли уже временной записи
         check_temp_query = "SELECT email FROM temp_registrations WHERE email = %s"
         cursor.execute(check_temp_query, (email,))
@@ -90,21 +124,21 @@ def register():
             # Удаляем предыдущую временную запись
             cursor.execute("DELETE FROM temp_registrations WHERE email = %s", (email,))
             conn.commit()
-        
+
         # Сохраняем данные пользователя во временной таблице
         verification_code = generate_verification_code()
         success = store_verification_code(email, username, hashed_password, height, bodyweight, age, verification_code)
         if not success:
             return jsonify({'error': 'Ошибка базы данных при регистрации'}), 500
-            
+
         # Отправка кода подтверждения
         if send_verification_email(email, verification_code):
             return jsonify({'message': 'Регистрация почти завершена. Проверьте email для подтверждения.'}), 201
         else:
             return jsonify({'error': 'Не удалось отправить код подтверждения на email'}), 500
-            
+
     except mysql.connector.Error as err:
-        return jsonify({'error': str(err)}), 400
+        return jsonify({'error': str(err)}), 400 ##TODO аналогичная ошибка, как в логине, сделать понятной пользователю
     finally:
         cursor.close()
         conn.close()
@@ -138,14 +172,15 @@ def login():
                     response_dict = {
                         'message': 'Вход выполнен успешно',
                         'token': str(token),
-                        'user_id': user_id
+                        'userId': user_id
                     }
                     print("json response - ", response_dict)
                     return jsonify(response_dict), 200
                 else:
                     return jsonify({'error': response[0] if response else 'Ошибка авторизации'}), 401
         except mysql.connector.Error as err:
-            return jsonify({'error': str(err)}), 401
+            print(err)
+            return jsonify({'error': str(err).split(':')[1].strip()}), 401
         finally:
             cursor.close()
             conn.close()
@@ -178,61 +213,366 @@ def logout(current_user_id):
 @app.route('/products', methods=['GET'])
 @token_required
 def get_products(current_user_id):
+    limit = request.args.get('limit', default=None, type=int)
+    only_mine = request.args.get('only_mine', default=False, type=bool)
+
     conn = mysql.connector.connect(**cfg)
     cursor = conn.cursor(dictionary=True)
-    
-    print(f"Пользователь {current_user_id} запрашивает список продуктов")
 
-    cursor.execute("SELECT product_id, product_name, proteins, fats, carbs, calories FROM products")
+    if only_mine:
+        query = "SELECT * FROM products WHERE created_by = %s"
+        cursor.execute(query, (current_user_id,))
+    elif limit:
+        query = "SELECT * FROM products LIMIT %s"
+        cursor.execute(query, (limit,))
+    else:
+        query = "SELECT * FROM products"
+        cursor.execute(query)
+
     rows = cursor.fetchall()
+    
+    # Форматируем строки в нужный формат
+    formatted_rows = []
+    for row in rows:
+        formatted_row = {
+            'product_id': row['product_id'],
+            'product_name': row['product_name'],
+            'proteins': float(row['proteins']),
+            'fats': float(row['fats']),
+            'carbs': float(row['carbs']),
+            'calories': float(row['calories']),
+            'barcode': row['barcode'] if row['barcode'] else None,
+            'isDish': bool(row['is_dish']) if 'is_dish' in row else False,
+            'createdBy': row['created_by']
+        }
+        formatted_rows.append(formatted_row)
+    
     cursor.close()
     conn.close()
-    return jsonify(rows)
+    return jsonify(formatted_rows)
 
-@app.route('/sync-meals', methods=['POST'])
+# Проверка уникальности названия продукта
+@app.route('/products/check-name', methods=['POST'])
 @token_required
-def sync_meals(current_user_id):
-    data = request.get_json()
-    meals_data = data.get('meals', [])
-
-    if not meals_data:
-        return jsonify({'message': 'Нет данных для синхронизации'}), 200
-
-    conn = mysql.connector.connect(**cfg)
-    cursor = conn.cursor()
-    
+def check_product_name(current_user_id):
     try:
-        # Отключаем авто-коммит для транзакции
-        conn.autocommit = False
-
-        for meal in meals_data:
-            # 1. Вставка в таблицу meal
-            meal_query = "INSERT INTO meal (user_id, name, meal_time) VALUES (%s, %s, %s)"
-            cursor.execute(meal_query, (current_user_id, meal['name'], meal['meal_time']))
-            
-            # Получаем ID только что созданного приема пищи
-            new_meal_id = cursor.lastrowid
-
-            for component in meal['components']:
-                # 2. Вставка в таблицу meal_component
-                comp_query = "INSERT INTO meal_component (product_id, weight) VALUES (%s, %s)"
-                cursor.execute(comp_query, (component['product_id'], component['weight']))
-                
-                new_component_id = cursor.lastrowid
-
-                # 3. Вставка в связующую таблицу meal_meal_component
-                link_query = "INSERT INTO meal_meal_component (meal_id, meal_component_id) VALUES (%s, %s)"
-                cursor.execute(link_query, (new_meal_id, new_component_id))
-
-        conn.commit()
-        return jsonify({'message': f'Успешно синхронизировано {len(meals_data)} приемов пищи'}), 201
-
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({'error': str(err)}), 400
-    finally:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        
+        if not name:
+            return jsonify({'error': 'Название продукта обязательно'}), 400
+        
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor()
+        
+        # Проверяем, существует ли продукт с таким названием
+        query = "SELECT COUNT(*) FROM products WHERE product_name = %s"
+        cursor.execute(query, (name,))
+        count = cursor.fetchone()[0]
+        
         cursor.close()
         conn.close()
+        
+        return jsonify({'exists': count > 0}), 200
+        
+    except Exception as e:
+        print(f"Ошибка при проверке названия продукта: {e}")
+        return jsonify({'error': 'Ошибка сервера при проверке названия'}), 500
+
+# Добавление нового продукта
+@app.route('/products', methods=['POST'])
+@token_required
+def add_product(current_user_id):
+    try:
+        data = request.get_json()
+        
+        name = data.get('product_name', '').strip()
+        protein = float(data.get('proteins', 0))
+        fats = float(data.get('fats', 0))
+        carbs = float(data.get('carbs', 0))
+        barcode = data.get('barcode', '').strip()
+        barcode = barcode if barcode else None
+        
+        # Валидация данных
+        if not name:
+            return jsonify({'error': 'Название продукта обязательно'}), 400
+        
+        if protein < 0 or fats < 0 or carbs < 0:
+            return jsonify({'error': 'Значения БЖУ не могут быть отрицательными'}), 400
+        
+        # Проверка суммы БЖУ
+        if protein + fats + carbs > 100:
+            return jsonify({'error': 'Сумма БЖУ не может превышать 100 граммов'}), 400
+        
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor()
+        
+        try:
+            # Проверяем уникальность названия
+            check_query = "SELECT COUNT(*) FROM products WHERE product_name = %s"
+            cursor.execute(check_query, (name,))
+            if cursor.fetchone()[0] > 0:
+                return jsonify({'error': 'Продукт с таким названием уже существует'}), 400
+            
+            # Вставляем новый продукт
+            insert_query = """
+                INSERT INTO products (product_name, proteins, fats, carbs, barcode, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (name, protein, fats, carbs, barcode, current_user_id))
+            product_id = cursor.lastrowid
+            
+            conn.commit()
+            
+            # Получаем созданный продукт для ответа
+            cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
+            product = cursor.fetchone()
+            print(product)
+            
+            # Формируем ответ в формате, ожидаемом клиентом
+            product_response = {
+                'product_id': product[0],
+                'product_name': product[1],
+                'proteins': float(product[2]),
+                'fats': float(product[3]),
+                'carbs': float(product[4]),
+                'calories': float(product[5]),
+                'barcode': product[6] if product[6] else None,
+                'isDish': False,
+                'createdBy': current_user_id
+            }
+            
+            return jsonify({
+                'success': True,
+                'product': product_response,
+                'message': 'Продукт успешно добавлен'
+            }), 201
+            
+        except mysql.connector.Error as err:
+            conn.rollback()
+            print(f"Ошибка MySQL при добавлении продукта: {err}")
+            return jsonify({'error': f'Ошибка базы данных: {str(err)}'}), 400
+        finally:
+            cursor.close()
+            conn.close()
+            
+    except Exception as e:
+        print(f"Ошибка при добавлении продукта: {e}")
+        return jsonify({'error': 'Ошибка сервера при добавлении продукта'}), 500
+
+@app.route('/meals/sync', methods=['POST'])
+@token_required
+def sync_meals(current_user_id):
+    try:
+        data = request.get_json()
+        print(f"Полученные данные: {data}")  # Отладочный лог
+        
+        meals_data = data.get('meals', [])
+        print(f"Meals data: {meals_data}")  # Отладочный лог
+
+        if not meals_data:
+            return jsonify({'success': True, 'message': 'Нет данных для синхронизации'}), 200
+
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor()
+
+        try:
+            # Отключаем авто-коммит для транзакции
+            conn.autocommit = False
+
+            # Очищаем все записи о приемах пищи пользователя перед синхронизацией
+            delete_query = "DELETE FROM meal WHERE user_id = %s"
+            cursor.execute(delete_query, (current_user_id,))
+            print(f"Удалено записей о приемах пищи для пользователя {current_user_id}")
+
+            for meal in meals_data:
+                print(f"Обработка приема пищи: {meal}")  # Отладочный лог
+                
+                # Конвертируем время в UTC
+                utc_meal_time = convert_to_utc(meal['mealTime'])
+                print(f"Время конвертировано в UTC: {meal['mealTime']} -> {utc_meal_time}")
+                
+                # 1. Вставка в таблицу meal (только meal_time в формате DATETIME)
+                meal_query = """
+                    INSERT INTO meal (user_id, name, meal_time) 
+                    VALUES (%s, %s, %s)
+                """
+                cursor.execute(meal_query, (
+                    current_user_id, 
+                    meal['name'], 
+                    utc_meal_time  # Используем сконвертированное время
+                ))
+
+                # Получаем ID только что созданного приема пищи
+                new_meal_id = cursor.lastrowid
+                print(f"Создан meal с ID: {new_meal_id}")  # Отладочный лог
+
+                components = meal.get('components', [])
+                print(f"Компоненты: {components}")  # Отладочный лог
+                
+                for component in components:
+                    # 2. Вставка в таблицу meal_meal_component (связь)
+                    link_query = "INSERT INTO meal_meal_component (meal_id) VALUES (%s)"
+                    cursor.execute(link_query, (new_meal_id,))
+                    new_link_id = cursor.lastrowid
+                    print(f"Создана связь с ID: {new_link_id}")  # Отладочный лог
+
+                    # 3. Вставка в таблицу meal_component (компоненты)
+                    comp_query = """
+                        INSERT INTO meal_component (meal_meal_component_id, product_id, weight) 
+                        VALUES (%s, %s, %s)
+                    """
+                    cursor.execute(comp_query, (
+                        new_link_id, 
+                        component['productId'], 
+                        component['weight']
+                    ))
+                    print(f"Добавлен компонент: productId={component['productId']}, weight={component['weight']}")  # Отладочный лог
+
+            conn.commit()
+            return jsonify({
+                'success': True, 
+                'message': f'Успешно синхронизировано {len(meals_data)} приемов пищи'
+            }), 201
+
+        except mysql.connector.Error as err:
+            conn.rollback()
+            print(f"Ошибка MySQL: {err}")  # Отладочный лог
+            return jsonify({
+                'success': False, 
+                'message': f'Ошибка синхронизации: {str(err)}'
+            }), 400
+        except Exception as err:
+            conn.rollback()
+            print(f"Общая ошибка: {err}")  # Отладочный лог
+            return jsonify({
+                'success': False, 
+                'message': f'Ошибка синхронизации: {str(err)}'
+            }), 400
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Ошибка при обработке запроса: {e}")  # Отладочный лог
+        return jsonify({
+            'success': False, 
+            'message': f'Ошибка обработки запроса: {str(e)}'
+        }), 400
+
+@app.route('/meals/clear', methods=['DELETE'])
+@token_required
+def clear_meals(current_user_id):
+    try:
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor()
+
+        try:
+            # Удаляем все записи о приемах пищи пользователя
+            delete_query = "DELETE FROM meal WHERE user_id = %s"
+            cursor.execute(delete_query, (current_user_id,))
+            
+            deleted_count = cursor.rowcount
+            conn.commit()
+            
+            print(f"Удалено {deleted_count} записей о приемах пищи для пользователя {current_user_id}")
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Успешно удалено {deleted_count} записей о приемах пищи'
+            }), 200
+
+        except mysql.connector.Error as err:
+            conn.rollback()
+            print(f"Ошибка MySQL при очистке: {err}")
+            return jsonify({
+                'success': False, 
+                'message': f'Ошибка очистки данных: {str(err)}'
+            }), 400
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Ошибка при обработке запроса очистки: {e}")
+        return jsonify({
+            'success': False, 
+            'message': f'Ошибка обработки запроса: {str(e)}'
+        }), 400
+
+@app.route('/meals', methods=['GET'])
+@token_required
+def get_meals(current_user_id):
+    try:
+        print(f"Запрос приемов пищи для пользователя: {current_user_id}")  # Отладочный лог
+        
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor(dictionary=True)
+
+        try:
+            # Получаем все приемы пищи пользователя
+            meals_query = """
+                SELECT meal_id, name, meal_time 
+                FROM meal 
+                WHERE user_id = %s 
+                ORDER BY meal_time
+            """
+            cursor.execute(meals_query, (current_user_id,))
+            meals = cursor.fetchall()
+            
+            print(f"Найдено приемов пищи: {len(meals)}")  # Отладочный лог
+
+            # Для каждого приема пищи получаем его компоненты и форматируем дату
+            for meal in meals:
+                # Форматируем дату в нужный формат, конвертируя из UTC в локальное время
+                if meal['meal_time']:
+                    utc_time_str = meal['meal_time'].strftime('%Y-%m-%d %H:%M:%S')
+                    meal['mealTime'] = convert_from_utc(utc_time_str)
+                    print(f"Время сконвертировано из UTC: {utc_time_str} -> {meal['mealTime']}")
+                else:
+                    meal['mealTime'] = ''
+                
+                components_query = """
+                    SELECT mc.product_id, mc.weight
+                    FROM meal_component mc
+                    JOIN meal_meal_component mmc ON mc.meal_meal_component_id = mmc.id
+                    WHERE mmc.meal_id = %s
+                """
+                cursor.execute(components_query, (meal['meal_id'],))
+                components = cursor.fetchall()
+                
+                # Преобразуем компоненты в нужный формат
+                meal['components'] = [
+                    {
+                        'productId': comp['product_id'],
+                        'weight': comp['weight']
+                    }
+                    for comp in components
+                ]
+                
+                # Удаляем meal_id и meal_time из ответа (они не нужны в клиентской части)
+                del meal['meal_id']
+                del meal['meal_time']
+                
+                print(f"Обработан прием пищи: {meal['name']}, время: {meal['mealTime']}")  # Отладочный лог
+
+            return jsonify({
+                'success': True,
+                'meals': meals
+            }), 200
+
+        except mysql.connector.Error as err:
+            return jsonify({
+                'success': False,
+                'message': f'Ошибка загрузки данных: {str(err)}'
+            }), 400
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Ошибка при обработке запроса: {e}")  # Отладочный лог
+        return jsonify({
+            'success': False, 
+            'message': f'Ошибка обработки запроса: {str(e)}'
+        }), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
