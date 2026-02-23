@@ -553,26 +553,28 @@ def get_meals(current_user_id):
                 'success': True,
                 'meals': meals
             }), 200
-            
-        except mysql.connector.Error as err:
-            return jsonify({
-                'success': False,
-                'message': f'Ошибка загрузки данных: {str(err)}'
-            }), 400
         finally:
             cursor.close()
             conn.close()
     except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")  # Отладочный лог
-# Получение данных профиля пользователя
+        print(f"Ошибка при обработке запроса: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Ошибка обработки запроса: {str(e)}'
+        }), 400
+
 @app.route('/profile', methods=['GET'])
 @token_required
 def get_profile(current_user_id):
     try:
+        print(f"=== GET /profile ЗАПРОС НАЧАТ ===")
+        print(f"User ID: {current_user_id}")
+        
         conn = mysql.connector.connect(**cfg)
         cursor = conn.cursor(dictionary=True)
         
         try:
+            print(f"Выполнение SQL запроса для user_id: {current_user_id}")
             # Получаем данные профиля пользователя (без goal и gender)
             profile_query = """
                 SELECT height, bodyweight, age
@@ -581,6 +583,8 @@ def get_profile(current_user_id):
             """
             cursor.execute(profile_query, (current_user_id,))
             profile = cursor.fetchone()
+            
+            print(f"Результат SQL запроса: {profile}")
             
             if profile:
                 # Форматируем ответ в соответствии с моделью ProfileData
@@ -592,113 +596,50 @@ def get_profile(current_user_id):
                     'gender': 'MALE'  # Значение по умолчанию для клиента
                 }
                 
-                print(f"Данные профиля получены для пользователя {current_user_id}: {profile_data}")
+                print(f"Сформированные данные профиля: {profile_data}")
                 
-                return jsonify({
+                response_data = {
                     'success': True,
                     'profile': profile_data
-                }), 200
+                }
+                
+                print(f"Ответ сервера: {response_data}")
+                print(f"=== GET /profile ЗАПРОС УСПЕШНО ЗАВЕРШЕН ===")
+                
+                return jsonify(response_data), 200
             else:
-                return jsonify({
+                print(f"Профиль не найден для user_id: {current_user_id}")
+                error_response = {
                     'success': False,
                     'message': 'Данные профиля не найдены'
-                }), 404
+                }
+                print(f"Ошибка: {error_response}")
+                print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ ===")
+                return jsonify(error_response), 404
                 
         except mysql.connector.Error as err:
             print(f"Ошибка MySQL при получении профиля: {err}")
-            return jsonify({
+            error_response = {
                 'success': False,
                 'message': f'Ошибка базы данных: {str(err)}'
-            }), 400
+            }
+            print(f"Ошибка MySQL: {error_response}")
+            print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ MYSQL ===")
+            return jsonify(error_response), 400
         finally:
             cursor.close()
             conn.close()
+            print("Соединение с БД закрыто")
             
     except Exception as e:
-        print(f"Ошибка при обработке запроса профиля: {e}")
-        return jsonify({
+        print(f"Критическая ошибка в get_profile: {e}")
+        error_response = {
             'success': False,
             'message': f'Ошибка обработки запроса: {str(e)}'
-        }), 500
-
-# Обновление данных профиля пользователя
-@app.route('/profile', methods=['POST'])
-@token_required
-def update_profile(current_user_id):
-    try:
-        data = request.get_json()
-        
-        height = data.get('height')
-        bodyweight = data.get('bodyweight')
-        age = data.get('age')
-        
-        # Валидация обязательных полей (без goal и gender)
-        if not all([height, bodyweight, age]):
-            return jsonify({
-                'success': False,
-                'message': 'Все поля профиля обязательны'
-            }), 400
-        
-        # Валидация значений
-        try:
-            height = float(height)
-            bodyweight = float(bodyweight)
-            age = int(age)
-        except ValueError:
-            return jsonify({
-                'success': False,
-                'message': 'Неверный формат данных'
-            }), 400
-        
-        if height <= 0 or bodyweight <= 0 or age <= 0:
-            return jsonify({
-                'success': False,
-                'message': 'Значения должны быть положительными'
-            }), 400
-        
-        conn = mysql.connector.connect(**cfg)
-        cursor = conn.cursor()
-        
-        try:
-            # Обновляем данные профиля пользователя (без goal и gender)
-            update_query = """
-                UPDATE users 
-                SET height = %s, bodyweight = %s, age = %s
-                WHERE user_id = %s
-            """
-            cursor.execute(update_query, (height, bodyweight, age, current_user_id))
-            
-            if cursor.rowcount > 0:
-                conn.commit()
-                print(f"Данные профиля обновлены для пользователя {current_user_id}: height={height}, weight={bodyweight}, age={age}")
-                
-                return jsonify({
-                    'success': True,
-                    'message': 'Данные профиля успешно обновлены'
-                }), 200
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Не удалось обновить данные профиля'
-                }), 400
-                
-        except mysql.connector.Error as err:
-            conn.rollback()
-            print(f"Ошибка MySQL при обновлении профиля: {err}")
-            return jsonify({
-                'success': False,
-                'message': f'Ошибка базы данных: {str(err)}'
-            }), 400
-        finally:
-            cursor.close()
-            conn.close()
-            
-    except Exception as e:
-        print(f"Ошибка при обработке запроса обновления профиля: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Ошибка обработки запроса: {str(e)}'
-        }), 500
+        }
+        print(f"Критическая ошибка: {error_response}")
+        print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С КРИТИЧЕСКОЙ ОШИБКОЙ ===")
+        return jsonify(error_response), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
