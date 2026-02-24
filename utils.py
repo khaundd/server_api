@@ -14,28 +14,28 @@ def generate_verification_code():
     import random
     return str(random.randint(100000, 999999))
 
-def store_verification_code(email: str, username: str, hashed_password: str, height: float, bodyweight: float, age: int, code: str):
+def store_verification_code(email: str, username: str, hashed_password: str, height: float, bodyweight: float, age: int, goal: str, gender: str, code: str):
     """Сохраняет данные регистрации и код подтверждения во временной таблице."""
     conn = None
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        
+
         # Устанавливаем время истечения кода (10 минут)
         expires_at = datetime.now() + timedelta(minutes=10)
-        
+
         # Удаляем предыдущие данные для этого email (если есть)
         cursor.execute("DELETE FROM temp_registrations WHERE email = %s", (email,))
-        
-        # Вставляем новые данные регистрации
-        query = """INSERT INTO temp_registrations (email, username, hashed_password, height, bodyweight, age, code, expires_at) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-        cursor.execute(query, (email, username, hashed_password, height, bodyweight, age, code, expires_at))
+
+        # Вставляем новые данные регистрации включая goal и gender
+        query = """INSERT INTO temp_registrations (email, username, hashed_password, height, bodyweight, age, goal, gender, code, expires_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        cursor.execute(query, (email, username, hashed_password, height, bodyweight, age, goal, gender, code, expires_at))
         conn.commit()
-        
+
         print(f"Данные регистрации сохранены для {email}, истекают в {expires_at}")
         return True
-        
+
     except mysql.connector.Error as err:
         print(f"Ошибка базы данных при сохранении данных регистрации: {err}")
         return False
@@ -46,11 +46,11 @@ def store_verification_code(email: str, username: str, hashed_password: str, hei
 
 def send_verification_email(email: str, code: str) -> bool:
     """Отправляет код подтверждения на указанный email.
-    
+
     Args:
         email: Email получателя
         code: Код подтверждения
-    
+
     Returns:
         bool: True при успешной отправке, False в случае ошибки
     """
