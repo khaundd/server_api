@@ -14,7 +14,7 @@ import pytz
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Установите секретный ключ для сессий
+app.secret_key = os.getenv('SECRET_KEY')  # Секретный ключ для сессий
 
 cfg = Config.get_db_config()
 
@@ -24,12 +24,10 @@ def hash_password(password):
 
 # Конвертация времени из локального формата в UTC
 def convert_to_utc(datetime_str):
-    """Конвертирует строку datetime в UTC формат"""
     try:
-        # Парсим локальное время
         local_dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
         # Определяем локальную временную зону
-        local_tz = pytz.timezone('Asia/Novosibirsk')  # Или другая временная зона
+        local_tz = pytz.timezone('Asia/Novosibirsk')  
         # Применяем локальную временную зону
         local_dt = local_tz.localize(local_dt)
         # Конвертируем в UTC
@@ -41,7 +39,6 @@ def convert_to_utc(datetime_str):
 
 # Конвертация времени из UTC в локальный формат
 def convert_from_utc(datetime_str):
-    """Конвертирует строку UTC datetime в локальный формат"""
     try:
         # Парсим UTC время
         utc_dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
@@ -60,13 +57,12 @@ def generate_token(user_id):
         'user_id': user_id,
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30) # Токен живет 30 дней
     }
-    return jwt.encode(payload, os.getenv('SECRET_KEY'), algorithm='HS256') #че-то тут не работало с os.getenv
+    return jwt.encode(payload, os.getenv('SECRET_KEY'), algorithm='HS256')
 
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        # Обычно токен передается в заголовке 'Authorization' в формате 'Bearer <token>'
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             try:
@@ -87,12 +83,10 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Неверный токен!'}), 401
 
-        # Передаем id пользователя в функцию, если это необходимо
         return f(current_user_id, *args, **kwargs)
 
     return decorated
 
-# Регистрация пользователя
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -102,8 +96,8 @@ def register():
     height = data.get('height')
     bodyweight = data.get('bodyweight')
     age = data.get('age')
-    goal = data.get('goal', 'MAINTAIN')  # Значение по умолчанию
-    gender = data.get('gender', 'MALE')  # Значение по умолчанию
+    goal = data.get('goal', 'MAINTAIN')
+    gender = data.get('gender', 'MALE')
 
     if not username or not password or not email:
         return jsonify({'error': 'Не все данные указаны'}), 400
@@ -140,12 +134,11 @@ def register():
             return jsonify({'error': 'Не удалось отправить код подтверждения на email'}), 500
 
     except mysql.connector.Error as err:
-        return jsonify({'error': str(err)}), 400 ##TODO аналогичная ошибка, как в логине, сделать понятной пользователю
+        return jsonify({'error': str(err)}), 400
     finally:
         cursor.close()
         conn.close()
 
-# Авторизация пользователя
 @app.route('/login', methods=['POST'])
 def login():
     try:
@@ -190,10 +183,8 @@ def login():
         print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Подтверждение email
 @app.route('/verify-email', methods=['POST'])
 def verify_email():
-    """Эндпоинт для подтверждения email по коду."""
     data = request.get_json()
     email = data.get('email')
     code = data.get('code')
@@ -204,14 +195,12 @@ def verify_email():
     success, response, status_code = verify_email_code(email, code)
     return jsonify(response), status_code
 
-# Выход из аккаунта
 @app.route('/logout', methods=['POST'])
 @token_required
 def logout(current_user_id):
     session.clear()
     return jsonify({'message': f'Пользователь {current_user_id} успешно вышел'}), 200
 
-# Получение данных из таблицы products
 @app.route('/products', methods=['GET'])
 @token_required
 def get_products(current_user_id):
@@ -253,7 +242,6 @@ def get_products(current_user_id):
     conn.close()
     return jsonify(formatted_rows)
 
-# Проверка уникальности названия продукта
 @app.route('/products/check-name', methods=['POST'])
 @token_required
 def check_product_name(current_user_id):
@@ -295,14 +283,12 @@ def add_product(current_user_id):
         barcode = data.get('barcode', '').strip()
         barcode = barcode if barcode else None
         
-        # Валидация данных
         if not name:
             return jsonify({'error': 'Название продукта обязательно'}), 400
         
         if protein < 0 or fats < 0 or carbs < 0:
             return jsonify({'error': 'Значения БЖУ не могут быть отрицательными'}), 400
         
-        # Проверка суммы БЖУ
         if protein + fats + carbs > 100:
             return jsonify({'error': 'Сумма БЖУ не может превышать 100 граммов'}), 400
         
@@ -316,7 +302,6 @@ def add_product(current_user_id):
             if cursor.fetchone()[0] > 0:
                 return jsonify({'error': 'Продукт с таким названием уже существует'}), 400
             
-            # Вставляем новый продукт
             insert_query = """
                 INSERT INTO products (product_name, proteins, fats, carbs, barcode, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s)
@@ -367,10 +352,10 @@ def add_product(current_user_id):
 def sync_meals(current_user_id):
     try:
         data = request.get_json()
-        print(f"Полученные данные: {data}")  # Отладочный лог
+        print(f"Полученные данные: {data}")
         
         meals_data = data.get('meals', [])
-        print(f"Meals data: {meals_data}")  # Отладочный лог
+        print(f"Meals data: {meals_data}")
 
         if not meals_data:
             return jsonify({'success': True, 'message': 'Нет данных для синхронизации'}), 200
@@ -379,7 +364,6 @@ def sync_meals(current_user_id):
         cursor = conn.cursor()
 
         try:
-            # Отключаем авто-коммит для транзакции
             conn.autocommit = False
 
             # Очищаем все записи о приемах пищи пользователя перед синхронизацией
@@ -388,13 +372,12 @@ def sync_meals(current_user_id):
             print(f"Удалено записей о приемах пищи для пользователя {current_user_id}")
 
             for meal in meals_data:
-                print(f"Обработка приема пищи: {meal}")  # Отладочный лог
+                print(f"Обработка приема пищи: {meal}")
                 
                 # Конвертируем время в UTC
                 utc_meal_time = convert_to_utc(meal['mealTime'])
                 print(f"Время конвертировано в UTC: {meal['mealTime']} -> {utc_meal_time}")
                 
-                # 1. Вставка в таблицу meal (только meal_time в формате DATETIME)
                 meal_query = """
                     INSERT INTO meal (user_id, name, meal_time) 
                     VALUES (%s, %s, %s)
@@ -402,24 +385,24 @@ def sync_meals(current_user_id):
                 cursor.execute(meal_query, (
                     current_user_id, 
                     meal['name'], 
-                    utc_meal_time  # Используем сконвертированное время
+                    utc_meal_time 
                 ))
 
                 # Получаем ID только что созданного приема пищи
                 new_meal_id = cursor.lastrowid
-                print(f"Создан meal с ID: {new_meal_id}")  # Отладочный лог
+                print(f"Создан meal с ID: {new_meal_id}")
 
                 components = meal.get('components', [])
-                print(f"Компоненты: {components}")  # Отладочный лог
+                print(f"Компоненты: {components}")
                 
                 for component in components:
-                    # 2. Вставка в таблицу meal_meal_component (связь)
+                    # Вставка в таблицу meal_meal_component
                     link_query = "INSERT INTO meal_meal_component (meal_id) VALUES (%s)"
                     cursor.execute(link_query, (new_meal_id,))
                     new_link_id = cursor.lastrowid
-                    print(f"Создана связь с ID: {new_link_id}")  # Отладочный лог
+                    print(f"Создана связь с ID: {new_link_id}")
 
-                    # 3. Вставка в таблицу meal_component (компоненты)
+                    # Вставка в таблицу meal_component
                     comp_query = """
                         INSERT INTO meal_component (meal_meal_component_id, product_id, weight) 
                         VALUES (%s, %s, %s)
@@ -429,7 +412,7 @@ def sync_meals(current_user_id):
                         component['productId'], 
                         component['weight']
                     ))
-                    print(f"Добавлен компонент: productId={component['productId']}, weight={component['weight']}")  # Отладочный лог
+                    print(f"Добавлен компонент: productId={component['productId']}, weight={component['weight']}")
 
             conn.commit()
             return jsonify({
@@ -439,14 +422,14 @@ def sync_meals(current_user_id):
 
         except mysql.connector.Error as err:
             conn.rollback()
-            print(f"Ошибка MySQL: {err}")  # Отладочный лог
+            print(f"Ошибка MySQL: {err}")
             return jsonify({
                 'success': False, 
                 'message': f'Ошибка синхронизации: {str(err)}'
             }), 400
         except Exception as err:
             conn.rollback()
-            print(f"Общая ошибка: {err}")  # Отладочный лог
+            print(f"Общая ошибка: {err}")
             return jsonify({
                 'success': False, 
                 'message': f'Ошибка синхронизации: {str(err)}'
@@ -455,7 +438,7 @@ def sync_meals(current_user_id):
             cursor.close()
             conn.close()
     except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")  # Отладочный лог
+        print(f"Ошибка при обработке запроса: {e}")
         return jsonify({
             'success': False, 
             'message': f'Ошибка обработки запроса: {str(e)}'
@@ -495,17 +478,17 @@ def clear_meals(current_user_id):
             conn.close()
     except Exception as e:
         print(f"Ошибка при обработке запроса очистки: {e}")
+
 @app.route('/meals', methods=['GET'])
 @token_required
 def get_meals(current_user_id):
     try:
-        print(f"Запрос приемов пищи для пользователя: {current_user_id}")  # Отладочный лог
+        print(f"Запрос приемов пищи для пользователя: {current_user_id}")
         
         conn = mysql.connector.connect(**cfg)
         cursor = conn.cursor(dictionary=True)
         
         try:
-            # Получаем все приемы пищи пользователя
             meals_query = """
                 SELECT meal_id, name, meal_time 
                 FROM meal 
@@ -515,11 +498,10 @@ def get_meals(current_user_id):
             cursor.execute(meals_query, (current_user_id,))
             meals = cursor.fetchall()
             
-            print(f"Найдено приемов пищи: {len(meals)}")  # Отладочный лог
+            print(f"Найдено приемов пищи: {len(meals)}")
             
             # Для каждого приема пищи получаем его компоненты и форматируем дату
             for meal in meals:
-                # Форматируем дату в нужный формат, конвертируя из UTC в локальное время
                 if meal['meal_time']:
                     utc_time_str = meal['meal_time'].strftime('%Y-%m-%d %H:%M:%S')
                     meal['mealTime'] = convert_from_utc(utc_time_str)
@@ -536,7 +518,6 @@ def get_meals(current_user_id):
                 cursor.execute(components_query, (meal['meal_id'],))
                 components = cursor.fetchall()
                 
-                # Преобразуем компоненты в нужный формат
                 meal['components'] = [
                     {
                         'productId': comp['product_id'],
@@ -549,7 +530,7 @@ def get_meals(current_user_id):
                 del meal['meal_id']
                 del meal['meal_time']
                 
-                print(f"Обработан прием пищи: {meal['name']}, время: {meal['mealTime']}")  # Отладочный лог
+                print(f"Обработан прием пищи: {meal['name']}, время: {meal['mealTime']}")
             
             return jsonify({
                 'success': True,
@@ -569,7 +550,7 @@ def get_meals(current_user_id):
 @token_required
 def get_profile(current_user_id):
     try:
-        print(f"=== GET /profile ЗАПРОС НАЧАТ ===")
+        print(f"GET /profile вызван")
         print(f"User ID: {current_user_id}")
         
         conn = mysql.connector.connect(**cfg)
@@ -577,7 +558,6 @@ def get_profile(current_user_id):
         
         try:
             print(f"Выполнение SQL запроса для user_id: {current_user_id}")
-            # Получаем данные профиля пользователя включая goal и gender
             profile_query = """
                 SELECT height, bodyweight, age, goal, gender
                 FROM users 
@@ -594,8 +574,8 @@ def get_profile(current_user_id):
                     'height': float(profile['height']),
                     'bodyweight': float(profile['bodyweight']),
                     'age': int(profile['age']),
-                    'goal': profile.get('goal', 'MAINTAIN'),  # Используем данные из БД с запасным значением
-                    'gender': profile.get('gender', 'MALE')  # Используем данные из БД с запасным значением
+                    'goal': profile.get('goal', 'MAINTAIN'),
+                    'gender': profile.get('gender', 'MALE')
                 }
                 
                 print(f"Сформированные данные профиля: {profile_data}")
@@ -606,7 +586,7 @@ def get_profile(current_user_id):
                 }
                 
                 print(f"Ответ сервера: {response_data}")
-                print(f"=== GET /profile ЗАПРОС УСПЕШНО ЗАВЕРШЕН ===")
+                print(f"GET /profile завершён")
                 
                 return jsonify(response_data), 200
             else:
@@ -616,7 +596,7 @@ def get_profile(current_user_id):
                     'message': 'Данные профиля не найдены'
                 }
                 print(f"Ошибка: {error_response}")
-                print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ ===")
+                print(f"GET /profile завершён с ошибкой")
                 return jsonify(error_response), 404
                 
         except mysql.connector.Error as err:
@@ -626,7 +606,7 @@ def get_profile(current_user_id):
                 'message': f'Ошибка базы данных: {str(err)}'
             }
             print(f"Ошибка MySQL: {error_response}")
-            print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ MYSQL ===")
+            print(f"GET /profile завершён с ошибкой MySQL")
             return jsonify(error_response), 400
         finally:
             cursor.close()
@@ -640,14 +620,14 @@ def get_profile(current_user_id):
             'message': f'Ошибка обработки запроса: {str(e)}'
         }
         print(f"Критическая ошибка: {error_response}")
-        print(f"=== GET /profile ЗАПРОС ЗАВЕРШЕН С КРИТИЧЕСКОЙ ОШИБКОЙ ===")
+        print(f"GET /profile завершён с критическое ошибкой")
         return jsonify(error_response), 500
 
 @app.route('/profile', methods=['POST'])
 @token_required
 def update_profile(current_user_id):
     try:
-        print(f"=== POST /profile ЗАПРОС НАЧАТ ===")
+        print(f"POST /profile начат")
         print(f"User ID: {current_user_id}")
         
         data = request.get_json()
@@ -656,7 +636,6 @@ def update_profile(current_user_id):
         conn = mysql.connector.connect(**cfg)
         cursor = conn.cursor(dictionary=True)
         
-        # Сначала получаем текущие значения из базы данных
         current_query = "SELECT height, bodyweight, age, goal, gender FROM users WHERE user_id = %s"
         cursor.execute(current_query, (current_user_id,))
         current_data = cursor.fetchone()
@@ -671,12 +650,11 @@ def update_profile(current_user_id):
         height = data.get('height', current_data['height'])
         bodyweight = data.get('bodyweight', current_data['bodyweight'])
         age = data.get('age', current_data['age'])
-        goal = data.get('goal', current_data['goal'])  # Используем текущее значение из БД
-        gender = data.get('gender', current_data['gender'])  # Используем текущее значение из БД
+        goal = data.get('goal', current_data['goal'])
+        gender = data.get('gender', current_data['gender'])
         
         cursor.close()
         
-        # Валидация данных
         if not height or not bodyweight or not age:
             return jsonify({
                 'success': False,
@@ -688,7 +666,7 @@ def update_profile(current_user_id):
         
         try:
             print(f"Обновление профиля для user_id: {current_user_id}")
-            # Обновляем данные профиля пользователя включая goal и gender
+            # Обновляем данные профиля пользователя
             update_query = """
                 UPDATE users 
                 SET height = %s, bodyweight = %s, age = %s, goal = %s, gender = %s
@@ -716,7 +694,7 @@ def update_profile(current_user_id):
                 }
                 
                 print(f"Ответ сервера: {response_data}")
-                print(f"=== POST /profile ЗАПРОС УСПЕШНО ЗАВЕРШЕН ===")
+                print(f"POST /profile успешно завершён")
                 
                 return jsonify(response_data), 200
             else:
@@ -726,7 +704,7 @@ def update_profile(current_user_id):
                     'message': 'Профиль не найден'
                 }
                 print(f"Ошибка: {error_response}")
-                print(f"=== POST /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ ===")
+                print(f"POST /profile завершён с ошибкой")
                 return jsonify(error_response), 404
                 
         except mysql.connector.Error as err:
@@ -737,7 +715,7 @@ def update_profile(current_user_id):
                 'message': f'Ошибка базы данных: {str(err)}'
             }
             print(f"Ошибка MySQL: {error_response}")
-            print(f"=== POST /profile ЗАПРОС ЗАВЕРШЕН С ОШИБКОЙ MYSQL ===")
+            print(f"POST /profile завершён с ошибкой MySQL")
             return jsonify(error_response), 400
         finally:
             cursor.close()
@@ -751,7 +729,7 @@ def update_profile(current_user_id):
             'message': f'Ошибка обработки запроса: {str(e)}'
         }
         print(f"Критическая ошибка: {error_response}")
-        print(f"=== POST /profile ЗАПРОС ЗАВЕРШЕН С КРИТИЧЕСКОЙ ОШИБКОЙ ===")
+        print(f"POST /profile завершён с критической ошибкой")
         return jsonify(error_response), 500
 
 if __name__ == '__main__':

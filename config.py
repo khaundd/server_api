@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Настройки базы данных
     DB_USER = os.getenv('DB_USER')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_HOST = os.getenv('DB_HOST')
@@ -12,7 +11,6 @@ class Config:
 
     @staticmethod
     def get_db_config():
-        """Возвращает конфигурацию для подключения к базе данных"""
         return {
             'user': Config.DB_USER,
             'password': Config.DB_PASSWORD,

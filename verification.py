@@ -5,13 +5,7 @@ from utils import db_config
 
 def verify_email_code(email: str, code: str):
     """Проверяет код подтверждения и активирует пользователя после подтверждения email.
-
-    Args:
-        email: Email пользователя
-        code: Введенный код подтверждения
-
-    Returns:
-        tuple: (success: bool, response: dict, status_code: int)
+    возвращает tuple: (success: bool, response: dict, status_code: int)
     """
     conn = None
     try:
@@ -29,12 +23,11 @@ def verify_email_code(email: str, code: str):
 
         username, password, height, bodyweight, age, goal, gender = result
 
-        # Вставляем пользователя в основную таблицу включая goal и gender
+        # Вставляем пользователя в основную таблицу
         insert_query = """INSERT INTO users (username, hashed_password, email, height, bodyweight, age, goal, gender)
                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.execute(insert_query, (username, password, email, height, bodyweight, age, goal, gender))
 
-        # Удаляем временную запись
         delete_query = "DELETE FROM temp_registrations WHERE email = %s"
         cursor.execute(delete_query, (email,))
 

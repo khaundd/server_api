@@ -10,7 +10,6 @@ db_config = Config.get_db_config()
 
 
 def generate_verification_code():
-    """Генерирует 6-значный числовой код подтверждения."""
     import random
     return str(random.randint(100000, 999999))
 
@@ -21,13 +20,12 @@ def store_verification_code(email: str, username: str, hashed_password: str, hei
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # Устанавливаем время истечения кода (10 минут)
-        expires_at = datetime.now() + timedelta(minutes=10)
+        expires_at = datetime.now() + timedelta(minutes=10) # Код живёт 10 минут
 
         # Удаляем предыдущие данные для этого email (если есть)
         cursor.execute("DELETE FROM temp_registrations WHERE email = %s", (email,))
 
-        # Вставляем новые данные регистрации включая goal и gender
+        # Вставляем новые данные регистрации
         query = """INSERT INTO temp_registrations (email, username, hashed_password, height, bodyweight, age, goal, gender, code, expires_at)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.execute(query, (email, username, hashed_password, height, bodyweight, age, goal, gender, code, expires_at))
@@ -47,14 +45,8 @@ def store_verification_code(email: str, username: str, hashed_password: str, hei
 def send_verification_email(email: str, code: str) -> bool:
     """Отправляет код подтверждения на указанный email.
 
-    Args:
-        email: Email получателя
-        code: Код подтверждения
-
-    Returns:
-        bool: True при успешной отправке, False в случае ошибки
+        Возвращает True при успешной отправке, False в случае ошибки
     """
-    # Настройки SMTP-сервера загружаются из переменных окружения
     smtp_server = os.getenv('SMTP_SERVER')
     smtp_port = int(os.getenv('SMTP_PORT'))
     sender_email = os.getenv('EMAIL_USER')
@@ -67,7 +59,7 @@ def send_verification_email(email: str, code: str) -> bool:
     message["To"] = email
 
     # Текстовое и HTML-представление письма
-    text = f"Привет!\nВаш код подтверждения: {code}\nКод действителен в течение 10 минут."
+    text = f"Ваш код подтверждения: {code}\nКод действителен в течение 10 минут."
     html = f"""
     <html>
       <body>
