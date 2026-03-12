@@ -10,6 +10,7 @@ import os
 from functools import wraps
 from dotenv import load_dotenv
 import pytz
+import productfinder as pf
 
 load_dotenv()
 
@@ -107,10 +108,10 @@ def register():
     cursor = conn.cursor()
 
     try:
-        # Проверяем, существует ли уже пользователь с такой почтой в основной таблице
-        check_query = "SELECT email FROM users WHERE email = %s"
-        cursor.execute(check_query, (email,))
-        if cursor.fetchone():
+        # Проверяем существование email с помощью функции базы данных
+        cursor.execute("SELECT is_email_exist(%s)", (email,))
+        email_exists = cursor.fetchone()[0]
+        if email_exists == 1:
             return jsonify({'error': f'Эта почта ({email}) уже зарегистрирована'}), 400
 
         # Проверяем, нет ли уже временной записи
@@ -242,6 +243,15 @@ def get_products(current_user_id):
     conn.close()
     return jsonify(formatted_rows)
 
+@app.route('/products/by-barcode', methods=['GET'])
+@token_required
+def get_product_by_barcode(current_user_id):
+    barcode = request.args.get('barcode')
+    print(f"Получен запрос на поиск продукта по штрихкоду: {barcode}")
+    product = pf.get_product_by_barcode(barcode)
+    print(f"Поиск продукта по штрихкоду завершён для: {barcode}")
+    return product
+
 @app.route('/products/check-name', methods=['POST'])
 @token_required
 def check_product_name(current_user_id):
@@ -275,7 +285,7 @@ def check_product_name(current_user_id):
 def add_product(current_user_id):
     try:
         data = request.get_json()
-        
+
         name = data.get('product_name', '').strip()
         protein = float(data.get('proteins', 0))
         fats = float(data.get('fats', 0))
@@ -302,19 +312,20 @@ def add_product(current_user_id):
             if cursor.fetchone()[0] > 0:
                 return jsonify({'error': 'Продукт с таким названием уже существует'}), 400
             
-            insert_query = """
-                INSERT INTO products (product_name, proteins, fats, carbs, barcode, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(insert_query, (name, protein, fats, carbs, barcode, current_user_id))
-            product_id = cursor.lastrowid
+            product_id = 0
+            cursor.callproc('add_simple_product', (
+                name, protein, fats, carbs, barcode, current_user_id, product_id
+            ))
             
             conn.commit()
+            # Получаем ID созданного продукта
+            for result in cursor.stored_results():
+                product_id = result.fetchone()[0]
+                break
             
             # Получаем созданный продукт для ответа
             cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
             product = cursor.fetchone()
-            print(product)
             
             # Формируем ответ в формате, ожидаемом клиентом
             product_response = {
