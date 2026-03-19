@@ -11,6 +11,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import pytz
 import productfinder as pf
+import json
 
 load_dotenv()
 
@@ -742,6 +743,191 @@ def update_profile(current_user_id):
         print(f"Критическая ошибка: {error_response}")
         print(f"POST /profile завершён с критической ошибкой")
         return jsonify(error_response), 500
+    
+@app.route('/recipes', methods=['GET'])
+@token_required
+def get_user_recipes(current_user_id):
+    conn = mysql.connector.connect(**cfg)
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.callproc('get_all_recipes_for_user', (current_user_id,))
+        print(f"Вызов процедуры get_all_recipes_for_user для user_id: {current_user_id}")
+        recipes = []
+        for result in cursor.stored_results():
+            rows = result.fetchall()
+            for row in rows:
+                if row.get('dish_composition'):
+                    try:
+                        row['dish_composition'] = json.loads(row['dish_composition'])
+                    except (ValueError, TypeError) as e:
+                        print(f"Ошибка при парсинге dish_composition: {e}")
+                        row['dish_composition'] = []
+                recipes.append(row)
+        print(f"Получено рецептов: {len(recipes)} для user_id: {current_user_id}")
+    except mysql.connector.Error as err:
+        print(f"Ошибка MySQL при получении рецептов: {err}")
+        return jsonify({'error': f'Ошибка базы данных: {str(err)}'}), 400
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(recipes), 200
+
+@app.route('/recipes', methods=['POST'])
+@token_required
+def add_recipe(current_user_id):
+    try:
+        data = request.get_json()
+        dish_name = data.get('dish_name')
+        ingredients = data.get('ingredients')
+        after_cooking_weight = data.get('after_cooking_weight')
+        ingredients_json = json.dumps(ingredients)
+        print(f"Название блюда: {dish_name}\nСписок ингредиентов: {ingredients_json}")
+
+        try:
+            conn = mysql.connector.connect(**cfg)
+            cursor = conn.cursor()
+            cursor.callproc('add_dish', (dish_name, ingredients_json, current_user_id, after_cooking_weight))
+            conn.commit()
+            return jsonify({"result":"Рецепт успешно сохранён"}), 200
+        except mysql.connector.Error as err:
+            conn.rollback()
+            print(f"Ошибка MySQL при добавлении рецепта: {err}")
+            return jsonify({'error': f'Ошибка базы данных: {str(err)}'}), 400
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Ошибка при добавлении рецепта: {e}")
+        return jsonify({'error': str(e)}), 402
+
+@app.route('/recipes/<int:product_id>', methods=['POST'])
+@token_required
+def update_recipe(current_user_id, product_id):
+    try:
+        data = request.get_json()
+        dish_name = data.get('dish_name')
+        ingredients = data.get('ingredients')
+        after_cooking_weight = data.get('after_cooking_weight')
+        ingredients_json = json.dumps(ingredients)
+        print(f"Обновление рецепта product_id={product_id}: {dish_name}, ингредиенты: {ingredients_json}")
+
+        try:
+            conn = mysql.connector.connect(**cfg)
+            cursor = conn.cursor()
+            cursor.callproc('update_dish', (product_id, dish_name, ingredients_json, current_user_id, after_cooking_weight))
+            conn.commit()
+            return jsonify({"result": "Рецепт успешно обновлён"}), 200
+        except mysql.connector.Error as err:
+            conn.rollback()
+            print(f"Ошибка MySQL при обновлении рецепта: {err}")
+            return jsonify({'error': f'Ошибка базы данных: {str(err)}'}), 400
+        finally:
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"Ошибка при обновлении рецепта: {e}")
+        return jsonify({'error': str(e)}), 402
+
+@app.route('/password-reset/request', methods=['POST'])
+def password_reset_request():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    if not email:
+        return jsonify({'error': 'Email обязателен'}), 400
+
+    conn = mysql.connector.connect(**cfg)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'error': 'Пользователь с таким email не найден'}), 404
+
+        code = generate_verification_code()
+        cursor.execute("DELETE FROM password_reset_codes WHERE email = %s", (email,))
+        cursor.execute(
+            "INSERT INTO password_reset_codes (email, code, created_at) VALUES (%s, %s, NOW())",
+            (email, code)
+        )
+        conn.commit()
+
+        if send_verification_email(email, code):
+            return jsonify({'message': 'Код отправлен на email'}), 200
+        else:
+            return jsonify({'error': 'Не удалось отправить код'}), 500
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/password-reset/verify', methods=['POST'])
+def password_reset_verify():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    code = data.get('code', '').strip()
+    if not email or not code:
+        return jsonify({'error': 'Email и код обязательны'}), 400
+
+    conn = mysql.connector.connect(**cfg)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT code FROM password_reset_codes WHERE email = %s AND created_at > NOW() - INTERVAL 15 MINUTE",
+            (email,)
+        )
+        row = cursor.fetchone()
+        if not row or row[0] != code:
+            return jsonify({'error': 'Неверный или устаревший код'}), 400
+        return jsonify({'message': 'Код верный'}), 200
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/password-reset/confirm', methods=['POST'])
+def password_reset_confirm():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    code = data.get('code', '').strip()
+    new_password = data.get('new_password', '').strip()
+    if not email or not code or not new_password:
+        return jsonify({'error': 'Email, код и новый пароль обязательны'}), 400
+
+    conn = mysql.connector.connect(**cfg)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT code FROM password_reset_codes WHERE email = %s AND created_at > NOW() - INTERVAL 15 MINUTE",
+            (email,)
+        )
+        row = cursor.fetchone()
+        if not row or row[0] != code:
+            return jsonify({'error': 'Неверный или устаревший код'}), 400
+
+        hashed = hash_password(new_password)
+        cursor.execute("UPDATE users SET hashed_password = %s WHERE email = %s", (hashed, email))
+        cursor.execute("DELETE FROM password_reset_codes WHERE email = %s", (email,))
+        conn.commit()
+
+        cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        if user:
+            token = generate_token(user[0])
+            return jsonify({'message': 'Пароль изменён', 'token': str(token), 'userId': user[0]}), 200
+        return jsonify({'message': 'Пароль изменён'}), 200
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
