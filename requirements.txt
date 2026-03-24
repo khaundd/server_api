@@ -3,3 +3,7 @@ mysql-connector-python
 python-dotenv
 PyJWT==2.8.0
 productfinder
+transliterate
+pickle
+glob
+symspellpy

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import pytz
 import productfinder as pf
 import json
+from advanced_search import advanced_search, init_symspell
 
 load_dotenv()
 
@@ -207,20 +208,21 @@ def logout(current_user_id):
 @token_required
 def get_products(current_user_id):
     limit = request.args.get('limit', default=None, type=int)
+    offset = request.args.get('offset', default=0, type=int)
     only_mine = request.args.get('only_mine', default=False, type=bool)
 
     conn = mysql.connector.connect(**cfg)
     cursor = conn.cursor(dictionary=True)
 
     if only_mine:
-        query = "SELECT * FROM products WHERE created_by = %s"
-        cursor.execute(query, (current_user_id,))
+        query = "SELECT * FROM products WHERE created_by = %s LIMIT %s OFFSET %s"
+        cursor.execute(query, (current_user_id, limit or 1000, offset))
     elif limit:
-        query = "SELECT * FROM products LIMIT %s"
-        cursor.execute(query, (limit,))
+        query = "SELECT * FROM products LIMIT %s OFFSET %s"
+        cursor.execute(query, (limit, offset))
     else:
-        query = "SELECT * FROM products"
-        cursor.execute(query)
+        query = "SELECT * FROM products LIMIT 1000 OFFSET %s"
+        cursor.execute(query, (offset,))
 
     rows = cursor.fetchall()
     
@@ -243,6 +245,47 @@ def get_products(current_user_id):
     cursor.close()
     conn.close()
     return jsonify(formatted_rows)
+
+@app.route('/products/search', methods=['GET'])
+@token_required
+def search_products(current_user_id):
+    search_query = "SELECT * FROM products WHERE product_id = %s"
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([]), 200
+
+    try:
+        conn = mysql.connector.connect(**cfg)
+        cursor = conn.cursor(dictionary=True)
+        finded_products = advanced_search(query)
+        rows = []
+        for t in finded_products:
+            p_id = t[0]
+            cursor.execute(search_query, (p_id,))
+            result = cursor.fetchone()
+            if result:
+                rows.append(result)
+
+        formatted_rows = []
+        for row in rows:
+            formatted_rows.append({
+                'product_id': row['product_id'],
+                'product_name': row['product_name'],
+                'proteins': float(row['proteins']),
+                'fats': float(row['fats']),
+                'carbs': float(row['carbs']),
+                'calories': float(row['calories']),
+                'barcode': row['barcode'] if row['barcode'] else None,
+                'isDish': bool(row['is_dish']) if 'is_dish' in row else False,
+                'createdBy': row['created_by']
+            })
+        return jsonify(formatted_rows), 200
+    except mysql.connector.Error as err:
+        print(f"Ошибка MySQL при поиске продуктов: {err}")
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/products/by-barcode', methods=['GET'])
 @token_required
@@ -930,4 +973,5 @@ def password_reset_confirm():
 
 
 if __name__ == '__main__':
+    init_symspell()
     app.run(host='0.0.0.0', port=5000, debug=True)

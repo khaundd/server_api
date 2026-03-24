@@ -1,0 +1,974 @@
+[
+    {
+        "product_name": "Гречневая крупа",
+        "proteins": 13,
+        "fats": 3,
+        "carbs": 68
+    },
+    {
+        "product_name": "Рис длиннозёрный шлифованный, сырой",
+        "proteins": 7.5,
+        "fats": 0.5,
+        "carbs": 79
+    },
+    {
+        "product_name": "Рис круглозёрный шлифованный, сырой",
+        "proteins": 9.5,
+        "fats": 2,
+        "carbs": 72
+    },
+    {
+        "product_name": "Рис Басмати, сырой",
+        "proteins": 8,
+        "fats": 0.5,
+        "carbs": 78
+    },
+    {
+        "product_name": "Рис Жасмин, сырой",
+        "proteins": 7.5,
+        "fats": 0.2,
+        "carbs": 76
+    },
+    {
+        "product_name": "Рис для плова, сырой",
+        "proteins": 6.5,
+        "fats": 6.5,
+        "carbs": 79
+    },
+    {
+        "product_name": "Горох колотый шлифованный, сырой",
+        "proteins": 22,
+        "fats": 2,
+        "carbs": 53
+    },
+    {
+        "product_name": "Геркулес, сырой",
+        "proteins": 11,
+        "fats": 6.2,
+        "carbs": 51.4
+    },
+    {
+        "product_name": "Манная крупа, сырая",
+        "proteins": 10.3,
+        "fats": 1,
+        "carbs": 70.6
+    },
+    {
+        "product_name": "Булгур, сырой",
+        "proteins": 12,
+        "fats": 1.5,
+        "carbs": 76
+    },
+    {
+        "product_name": "Крупа перловая, сырая",
+        "proteins": 9.3,
+        "fats": 1.1,
+        "carbs": 73.7
+    },
+    {
+        "product_name": "Хлопья овсяные, сырые",
+        "proteins": 13,
+        "fats": 6.5,
+        "carbs": 55
+    },
+    {
+        "product_name": "Пшено, сырое",
+        "proteins": 12,
+        "fats": 3,
+        "carbs": 66
+    },
+    {
+        "product_name": "Крупа ячневая, сырая",
+        "proteins": 8.3,
+        "fats": 1.4,
+        "carbs": 65.4
+    },
+    {
+        "product_name": "Чечевица красная, сырая",
+        "proteins": 26,
+        "fats": 2,
+        "carbs": 57
+    },
+    {
+        "product_name": "Чечевица зелёная, сырая",
+        "proteins": 28,
+        "fats": 2,
+        "carbs": 58
+    },
+    {
+        "product_name": "Киноа, сырое",
+        "proteins": 14,
+        "fats": 7,
+        "carbs": 65
+    },
+    {
+        "product_name": "Нут, сырой",
+        "proteins": 22,
+        "fats": 4,
+        "carbs": 62
+    },
+    {
+        "product_name": "Полента (кукурузная крупа), сырая",
+        "proteins": 8.3,
+        "fats": 1.2,
+        "carbs": 75
+    },
+    {
+        "product_name": "Полба, сырая",
+        "proteins": 14.6,
+        "fats": 2.4,
+        "carbs": 70.2
+    },
+    {
+        "product_name": "Фасоль, сырая",
+        "proteins": 21,
+        "fats": 2,
+        "carbs": 54.5
+    },
+    {
+        "product_name": "Крупа пшеничная, сырая",
+        "proteins": 11.5,
+        "fats": 1.3,
+        "carbs": 67.6
+    },
+    {
+        "product_name": "Мука пшеничная высшего сорта",
+        "proteins": 10.3,
+        "fats": 1.1,
+        "carbs": 74.2
+    },
+    {
+        "product_name": "Мука пшеничная 1-го сорта",
+        "proteins": 10.6,
+        "fats": 1.3,
+        "carbs": 73.2
+    },
+    {
+        "product_name": "Мука рисовая",
+        "proteins": 6,
+        "fats": 1,
+        "carbs": 80
+    },
+    {
+        "product_name": "Мука гречневая",
+        "proteins": 12.6,
+        "fats": 3.3,
+        "carbs": 71.9
+    },
+    {
+        "product_name": "Масло подсолнечное рафинированное",
+        "proteins": 0,
+        "fats": 99.9,
+        "carbs": 0
+    },
+    {
+        "product_name": "Масло подсолнечное нерафинированное",
+        "proteins": 0,
+        "fats": 99.9,
+        "carbs": 0
+    },
+    {
+        "product_name": "Масло оливковое",
+        "proteins": 0,
+        "fats": 99.8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Масло кокосовое",
+        "proteins": 0,
+        "fats": 99.9,
+        "carbs": 0
+    },
+    {
+        "product_name": "Огурцы свежие",
+        "proteins": 0.8,
+        "fats": 0.1,
+        "carbs": 2.5
+    },
+    {
+        "product_name": "Лук репчатый",
+        "proteins": 1.4,
+        "fats": 0,
+        "carbs": 10.4
+    },
+    {
+        "product_name": "Картофель",
+        "proteins": 2,
+        "fats": 0.4,
+        "carbs": 18.1
+    },
+    {
+        "product_name": "Морковь",
+        "proteins": 1.3,
+        "fats": 0.1,
+        "carbs": 9.6
+    },
+    {
+        "product_name": "Томаты",
+        "proteins": 0.9,
+        "fats": 0.2,
+        "carbs": 4.2
+    },
+    {
+        "product_name": "Капуста белокочанная",
+        "proteins": 1.8,
+        "fats": 0.1,
+        "carbs": 6.8
+    },
+    {
+        "product_name": "Свёкла",
+        "proteins": 1.5,
+        "fats": 0.1,
+        "carbs": 11.8
+    },
+    {
+        "product_name": "Чеснок",
+        "proteins": 6.5,
+        "fats": 0.5,
+        "carbs": 29.9
+    },
+    {
+        "product_name": "Авокадо",
+        "proteins": 2,
+        "fats": 14.7,
+        "carbs": 8.5
+    },
+    {
+        "product_name": "Кабачки",
+        "proteins": 0.6,
+        "fats": 0.3,
+        "carbs": 4.6
+    },
+    {
+        "product_name": "Перец красный сладкий",
+        "proteins": 1.3,
+        "fats": 0,
+        "carbs": 7.2
+    },
+    {
+        "product_name": "Томаты черри",
+        "proteins": 0.9,
+        "fats": 0.2,
+        "carbs": 3.9
+    },
+    {
+        "product_name": "Имбирь",
+        "proteins": 1.8,
+        "fats": 0.8,
+        "carbs": 15.8
+    },
+    {
+        "product_name": "Лук красный",
+        "proteins": 1.4,
+        "fats": 0,
+        "carbs": 9.5
+    },
+    {
+        "product_name": "Капуста цветная",
+        "proteins": 2.5,
+        "fats": 0.3,
+        "carbs": 5.4
+    },
+    {
+        "product_name": "Бананы",
+        "proteins": 1.5,
+        "fats": 0.2,
+        "carbs": 21.8
+    },
+    {
+        "product_name": "Лимоны",
+        "proteins": 0.9,
+        "fats": 0.1,
+        "carbs": 9
+    },
+    {
+        "product_name": "Апельсины",
+        "proteins": 0.9,
+        "fats": 0.2,
+        "carbs": 11.8
+    },
+    {
+        "product_name": "Яблоки",
+        "proteins": 0.4,
+        "fats": 0.4,
+        "carbs": 11.8
+    },
+    {
+        "product_name": "Мандарины",
+        "proteins": 0.8,
+        "fats": 0.2,
+        "carbs": 10.6
+    },
+    {
+        "product_name": "Груши",
+        "proteins": 0.4,
+        "fats": 0.3,
+        "carbs": 15.2
+    },
+    {
+        "product_name": "Виноград белый",
+        "proteins": 0.6,
+        "fats": 0.2,
+        "carbs": 16.8
+    },
+    {
+        "product_name": "Виноград чёрный",
+        "proteins": 0.6,
+        "fats": 0.2,
+        "carbs": 17.2
+    },
+    {
+        "product_name": "Виноград красный",
+        "proteins": 0.6,
+        "fats": 0.2,
+        "carbs": 17
+    },
+    {
+        "product_name": "Грейпфруты",
+        "proteins": 0.7,
+        "fats": 0.2,
+        "carbs": 8.7
+    },
+    {
+        "product_name": "Помело",
+        "proteins": 0.6,
+        "fats": 0.2,
+        "carbs": 10
+    },
+    {
+        "product_name": "Лайм",
+        "proteins": 0.9,
+        "fats": 0.1,
+        "carbs": 8.1
+    },
+    {
+        "product_name": "Гранат",
+        "proteins": 0.9,
+        "fats": 0,
+        "carbs": 13.9
+    },
+    {
+        "product_name": "Кокос",
+        "proteins": 3.3,
+        "fats": 33.5,
+        "carbs": 14.5
+    },
+    {
+        "product_name": "Дыня",
+        "proteins": 0.6,
+        "fats": 0,
+        "carbs": 7.4
+    },
+    {
+        "product_name": "Арбуз",
+        "proteins": 0.7,
+        "fats": 0.2,
+        "carbs": 7.9
+    },
+    {
+        "product_name": "Манго",
+        "proteins": 0.5,
+        "fats": 0.3,
+        "carbs": 15
+    },
+    {
+        "product_name": "Киви",
+        "proteins": 0.8,
+        "fats": 0.4,
+        "carbs": 10.3
+    },
+    {
+        "product_name": "Ананас",
+        "proteins": 0.3,
+        "fats": 0.1,
+        "carbs": 13.1
+    },
+    {
+        "product_name": "Слива",
+        "proteins": 0.8,
+        "fats": 0.3,
+        "carbs": 11.4
+    },
+    {
+        "product_name": "Персик",
+        "proteins": 0.9,
+        "fats": 0.1,
+        "carbs": 11.3
+    },
+    {
+        "product_name": "Абрикос",
+        "proteins": 0.9,
+        "fats": 0.1,
+        "carbs": 10.8
+    },
+    {
+        "product_name": "Клубника",
+        "proteins": 0.8,
+        "fats": 0.4,
+        "carbs": 7.5
+    },
+    {
+        "product_name": "Малина",
+        "proteins": 0.8,
+        "fats": 0.5,
+        "carbs": 11.9
+    },
+    {
+        "product_name": "Ежевика",
+        "proteins": 1.5,
+        "fats": 0.5,
+        "carbs": 11.4
+    },
+    {
+        "product_name": "Голубика",
+        "proteins": 1,
+        "fats": 0.6,
+        "carbs": 12
+    },
+    {
+        "product_name": "Брусника",
+        "proteins": 0.7,
+        "fats": 0.5,
+        "carbs": 11.3
+    },
+    {
+        "product_name": "Черника",
+        "proteins": 1.1,
+        "fats": 0.6,
+        "carbs": 15
+    },
+    {
+        "product_name": "Вишня",
+        "proteins": 0.8,
+        "fats": 0.5,
+        "carbs": 12.3
+    },
+    {
+        "product_name": "Черешня",
+        "proteins": 1.1,
+        "fats": 0.4,
+        "carbs": 15.5
+    },
+    {
+        "product_name": "Облепиха",
+        "proteins": 1.2,
+        "fats": 5.4,
+        "carbs": 9.3
+    },
+    {
+        "product_name": "Земляника",
+        "proteins": 0.8,
+        "fats": 0.4,
+        "carbs": 9.9
+    },
+    {
+        "product_name": "Укроп",
+        "proteins": 2.5,
+        "fats": 0.5,
+        "carbs": 6.3
+    },
+    {
+        "product_name": "Петрушка",
+        "proteins": 3.7,
+        "fats": 0.4,
+        "carbs": 8.1
+    },
+    {
+        "product_name": "Лук зелёный",
+        "proteins": 1.3,
+        "fats": 0,
+        "carbs": 4.6
+    },
+    {
+        "product_name": "Салат Айсберг",
+        "proteins": 0.9,
+        "fats": 0.1,
+        "carbs": 3
+    },
+    {
+        "product_name": "Шампиньоны",
+        "proteins": 4.3,
+        "fats": 1,
+        "carbs": 1
+    },
+    {
+        "product_name": "Лисички",
+        "proteins": 1.6,
+        "fats": 1.1,
+        "carbs": 2.5
+    },
+    {
+        "product_name": "Опята",
+        "proteins": 2.2,
+        "fats": 1.2,
+        "carbs": 0.5
+    },
+    {
+        "product_name": "Грибы белые",
+        "proteins": 3.7,
+        "fats": 1.7,
+        "carbs": 1.1
+    },
+    {
+        "product_name": "Маслята",
+        "proteins": 2.4,
+        "fats": 0.7,
+        "carbs": 0.5
+    },
+    {
+        "product_name": "Изюм",
+        "proteins": 2.3,
+        "fats": 0.6,
+        "carbs": 71.2
+    },
+    {
+        "product_name": "Курага",
+        "proteins": 5.2,
+        "fats": 0,
+        "carbs": 65.9
+    },
+    {
+        "product_name": "Чернослив",
+        "proteins": 2.3,
+        "fats": 0.7,
+        "carbs": 57.5
+    },
+    {
+        "product_name": "Цукаты",
+        "proteins": 0.4,
+        "fats": 0.1,
+        "carbs": 71
+    },
+    {
+        "product_name": "Фундук",
+        "proteins": 16.1,
+        "fats": 66.9,
+        "carbs": 9.9
+    },
+    {
+        "product_name": "Арахис",
+        "proteins": 26.3,
+        "fats": 45.2,
+        "carbs": 9.9
+    },
+    {
+        "product_name": "Орех кедровый",
+        "proteins": 11.6,
+        "fats": 61,
+        "carbs": 19.7
+    },
+    {
+        "product_name": "Фисташки жареные солёные",
+        "proteins": 20,
+        "fats": 51.6,
+        "carbs": 16.2
+    },
+    {
+        "product_name": "Кешью",
+        "proteins": 18.5,
+        "fats": 48.5,
+        "carbs": 22.5
+    },
+    {
+        "product_name": "Грецкий орех",
+        "proteins": 15.6,
+        "fats": 65.2,
+        "carbs": 7
+    },
+    {
+        "product_name": "Миндаль",
+        "proteins": 18.6,
+        "fats": 57.7,
+        "carbs": 16.2
+    },
+    {
+        "product_name": "Минтай",
+        "proteins": 15.9,
+        "fats": 0.7,
+        "carbs": 0
+    },
+    {
+        "product_name": "Лосось",
+        "proteins": 20,
+        "fats": 8.1,
+        "carbs": 0
+    },
+    {
+        "product_name": "Горбуша",
+        "proteins": 21,
+        "fats": 7,
+        "carbs": 0
+    },
+    {
+        "product_name": "Нерка",
+        "proteins": 21.6,
+        "fats": 11.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Камбала",
+        "proteins": 15.7,
+        "fats": 3,
+        "carbs": 0
+    },
+    {
+        "product_name": "Скумбрия",
+        "proteins": 18,
+        "fats": 13.2,
+        "carbs": 0
+    },
+    {
+        "product_name": "Форель",
+        "proteins": 19.8,
+        "fats": 6.8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Кета",
+        "proteins": 22,
+        "fats": 5.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Мойва",
+        "proteins": 13.4,
+        "fats": 11.5,
+        "carbs": 0
+    },
+    {
+        "product_name": "Карась",
+        "proteins": 17.7,
+        "fats": 1.8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Терпуг",
+        "proteins": 18.7,
+        "fats": 3.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Пангасиус",
+        "proteins": 15,
+        "fats": 2.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Дорадо",
+        "proteins": 20,
+        "fats": 3.4,
+        "carbs": 0
+    },
+    {
+        "product_name": "Судак",
+        "proteins": 19,
+        "fats": 0.8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Тилапия",
+        "proteins": 20.1,
+        "fats": 1.7,
+        "carbs": 0
+    },
+    {
+        "product_name": "Сазан",
+        "proteins": 18.4,
+        "fats": 5.3,
+        "carbs": 0
+    },
+    {
+        "product_name": "Карп зеркальный",
+        "proteins": 16,
+        "fats": 5.3,
+        "carbs": 0
+    },
+    {
+        "product_name": "Кижуч",
+        "proteins": 21.6,
+        "fats": 6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Окорок свиной",
+        "proteins": 18,
+        "fats": 21.4,
+        "carbs": 0
+    },
+    {
+        "product_name": "Карбонад из свинины",
+        "proteins": 16.7,
+        "fats": 15.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Шея свиная",
+        "proteins": 14.5,
+        "fats": 31.4,
+        "carbs": 0
+    },
+    {
+        "product_name": "Лопатка свиная",
+        "proteins": 16.5,
+        "fats": 26,
+        "carbs": 0
+    },
+    {
+        "product_name": "Вырезка свиная",
+        "proteins": 19.4,
+        "fats": 7.1,
+        "carbs": 0
+    },
+    {
+        "product_name": "Свинина на кости",
+        "proteins": 14.9,
+        "fats": 30.3,
+        "carbs": 0
+    },
+    {
+        "product_name": "Грудинка свиная",
+        "proteins": 12,
+        "fats": 50,
+        "carbs": 0
+    },
+    {
+        "product_name": "Рулька из свинины",
+        "proteins": 19,
+        "fats": 22,
+        "carbs": 0
+    },
+    {
+        "product_name": "Рагу из свинины",
+        "proteins": 16,
+        "fats": 18,
+        "carbs": 0
+    },
+    {
+        "product_name": "Тушка куриная",
+        "proteins": 18.2,
+        "fats": 18.4,
+        "carbs": 0
+    },
+    {
+        "product_name": "Филе куриное",
+        "proteins": 23.1,
+        "fats": 1.2,
+        "carbs": 0
+    },
+    {
+        "product_name": "Грудка куриная",
+        "proteins": 23.6,
+        "fats": 1.9,
+        "carbs": 0
+    },
+    {
+        "product_name": "Крыло куриное",
+        "proteins": 18.3,
+        "fats": 15.1,
+        "carbs": 0
+    },
+    {
+        "product_name": "Голень куриная",
+        "proteins": 21.3,
+        "fats": 11.6,
+        "carbs": 0
+    },
+    {
+        "product_name": "Окорок куриный",
+        "proteins": 20.8,
+        "fats": 11.7,
+        "carbs": 0
+    },
+    {
+        "product_name": "Бедро куриное",
+        "proteins": 18.8,
+        "fats": 14.8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Печень куриная",
+        "proteins": 20.4,
+        "fats": 5.9,
+        "carbs": 0.73
+    },
+    {
+        "product_name": "Желудки куриные",
+        "proteins": 18.2,
+        "fats": 4.2,
+        "carbs": 0
+    },
+    {
+        "product_name": "Сердце куриное",
+        "proteins": 15.8,
+        "fats": 10.8,
+        "carbs": 0.8
+    },
+    {
+        "product_name": "Голень индейки",
+        "proteins": 20.1,
+        "fats": 3.5,
+        "carbs": 0
+    },
+    {
+        "product_name": "Филе грудки индейки",
+        "proteins": 24.7,
+        "fats": 1.5,
+        "carbs": 0
+    },
+    {
+        "product_name": "Мякоть бедра индейки",
+        "proteins": 20.7,
+        "fats": 8,
+        "carbs": 0
+    },
+    {
+        "product_name": "Мякоть говяжья",
+        "proteins": 20,
+        "fats": 7.5,
+        "carbs": 0
+    },
+    {
+        "product_name": "Говядина на кости",
+        "proteins": 18.5,
+        "fats": 16,
+        "carbs": 0
+    },
+    {
+        "product_name": "Тазобедренная часть говяжья бескостная",
+        "proteins": 20.7,
+        "fats": 6.3,
+        "carbs": 0
+    },
+    {
+        "product_name": "Печень говяжья",
+        "proteins": 17.4,
+        "fats": 3.1,
+        "carbs": 5.3
+    },
+    {
+        "product_name": "Сливки 10%",
+        "proteins": 3,
+        "fats": 10,
+        "carbs": 4
+    },
+    {
+        "product_name": "Сливки 20%",
+        "proteins": 2.8,
+        "fats": 20,
+        "carbs": 3.7
+    },
+    {
+        "product_name": "Сливки 26%",
+        "proteins": 2.7,
+        "fats": 26,
+        "carbs": 3.5
+    },
+    {
+        "product_name": "Сливки взбитые",
+        "proteins": 2.2,
+        "fats": 33,
+        "carbs": 3.3
+    },
+    {
+        "product_name": "Творог обезжиренный",
+        "proteins": 18,
+        "fats": 0.6,
+        "carbs": 1.8
+    },
+    {
+        "product_name": "Творог 2%",
+        "proteins": 16.7,
+        "fats": 2,
+        "carbs": 2.7
+    },
+    {
+        "product_name": "Творог 5%",
+        "proteins": 17.2,
+        "fats": 5,
+        "carbs": 1.8
+    },
+    {
+        "product_name": "Творог 9%",
+        "proteins": 16.7,
+        "fats": 9,
+        "carbs": 2
+    },
+    {
+        "product_name": "Яйцо куриное",
+        "proteins": 12.7,
+        "fats": 10.9,
+        "carbs": 0.7
+    },
+    {
+        "product_name": "Яйцо перепелиное",
+        "proteins": 11.9,
+        "fats": 13.1,
+        "carbs": 0.6
+    },
+    {
+        "product_name": "Молоко 2,5%",
+        "proteins": 2.8,
+        "fats": 2.5,
+        "carbs": 4.7
+    },
+    {
+        "product_name": "Молоко 3,2%",
+        "proteins": 2.9,
+        "fats": 3.2,
+        "carbs": 4.7
+    },
+    {
+        "product_name": "Молоко топлёное",
+        "proteins": 2.9,
+        "fats": 4,
+        "carbs": 4.7
+    },
+    {
+        "product_name": "Молоко безлактозное",
+        "proteins": 3.4,
+        "fats": 1.5,
+        "carbs": 4.8
+    },
+    {
+        "product_name": "Сметана 10%",
+        "proteins": 3,
+        "fats": 10,
+        "carbs": 2.9
+    },
+    {
+        "product_name": "Сметана 15%",
+        "proteins": 2.6,
+        "fats": 15,
+        "carbs": 3.1
+    },
+    {
+        "product_name": "Сметана 20%",
+        "proteins": 2.5,
+        "fats": 20,
+        "carbs": 3.4
+    },
+    {
+        "product_name": "Сметана 25%",
+        "proteins": 2.6,
+        "fats": 25,
+        "carbs": 2.5
+    },
+    {
+        "product_name": "Сахар белый",
+        "proteins": 0,
+        "fats": 0,
+        "carbs": 99.9
+    },
+    {
+        "product_name": "Сахар тростниковый",
+        "proteins": 0,
+        "fats": 0,
+        "carbs": 99.6
+    },
+    {
+        "product_name": "Сахарозаменитель",
+        "proteins": 0,
+        "fats": 0,
+        "carbs": 0
+    }
+]
