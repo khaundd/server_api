@@ -7,3 +7,4 @@ transliterate
 pickle
 glob
 symspellpy
+firebase-admin
